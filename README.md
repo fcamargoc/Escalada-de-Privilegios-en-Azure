@@ -119,10 +119,9 @@ az logout
 e inicia sesion con el owner que es el service principal
 
 az login --service-principal \
-    -u "<APP_ID>" \
-    -p "<PSWD>" \
-    --tenant "<TENANT_ID>"
-
+    -u "EL_APPID_PROPORCIONADO" \
+    -p "EL_PASSWORD_PROPORCIONADO" \
+    --tenant "EL_TENANT_ID_PROPORCIONADO"
 
 (En la máquina local) El atacante, ahora Owner, crea un nuevo grupo de recursos
 az group create --name "prueba-de-control-total" --location "westus"
