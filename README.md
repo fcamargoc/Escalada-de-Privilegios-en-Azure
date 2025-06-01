@@ -56,6 +56,7 @@ Obtener el ID de la VM
 vmId=$(az vm show --resource-group "lab-escalation" --name "compromised-vm" --query id --output tsv))
 
 Crear el Service Principal con permisos sobre la VM
+
 sp_credentials=$(az ad sp create-for-rbac --name "attacker-sp" --role "Virtual Machine Contributor" --scopes $vmId)
 
 Mostrar las credenciales que se entregarán a los participantes
