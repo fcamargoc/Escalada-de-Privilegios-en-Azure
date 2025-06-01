@@ -120,7 +120,7 @@ e inicia sesion con el owner que es el service principal
 
 az login --service-principal \
     -u "<APP_ID>" \
-    -p "<PASSWORD>" \
+    -p "<PSWD>" \
     --tenant "<TENANT_ID>"
 
 
