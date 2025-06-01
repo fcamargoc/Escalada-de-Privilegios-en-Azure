@@ -19,13 +19,16 @@ az identity create --name labidentity --resource-group lab-escalation
 Asignamos el rol de User Access Administrator a la identidad sobre toda la suscripción. Este es un privilegio excesivo y el núcleo de la vulnerabilidad, ya que este rol permite gestionar los permisos de otros usuarios.
 
 Obtener el ID de la suscripción
+
 subscriptionId=$(az account show --query id --output tsv)
 
 Obtener el ID de la entidad de servicio de la identidad administrada
+
 identityPrincipalId=$(az identity show --name "labidentity" --resource-group "lab-escalation" --query principalId --output tsv)
 
  Asignar el rol de "User Access Administrator" a la identidad administrada sobre toda la suscripción
  ESTE ES EL CAMBIO CLAVE
+ 
 az role assignment create \
     --assignee $identityPrincipalId \
     --role "User Access Administrator" \
