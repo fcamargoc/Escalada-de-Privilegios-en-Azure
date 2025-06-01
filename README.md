@@ -62,7 +62,9 @@ sp_credentials=$(az ad sp create-for-rbac --name "attacker-sp" --role "Virtual M
 Mostrar las credenciales que se entregarán a los participantes
 
 echo "--- Credenciales para los Participantes del Workshop ---"
+
 echo $sp_credentials
+
 echo "--------------------------------------------------------"
 
 Acción: Copiar  (appId, password, tenant) generadas
