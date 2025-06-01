@@ -52,6 +52,7 @@ az vm create \
 Creamos un Service Principal con permisos para ejecutar comandos en la VM. El rol Virtual Machine Contributor es necesario para permitir la ejecución de run-command.
 
 Obtener el ID de la VM
+
 vmId=$(az vm show --resource-group "lab-escalation" --name "compromised-vm" --query id --output tsv))
 
 Crear el Service Principal con permisos sobre la VM
