@@ -29,8 +29,8 @@ echo "3. Asignando rol 'User Access Administrator' a la Identidad..."
 subscriptionId=$(az account show --query id --output tsv)
 identityPrincipalId=$(az identity show --name $IDENTITY_NAME --resource-group $RESOURCE_GROUP --query principalId --output tsv)
 
-echo "  Esperando 15 segundos para la propagación de la identidad en Azure AD..."
-sleep 15
+echo "  Esperando 20 segundos para la propagación de la identidad en Azure AD..."
+sleep 20
 
 az role assignment create \
     --assignee $identityPrincipalId \
