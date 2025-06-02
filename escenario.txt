@@ -1,0 +1,38 @@
+
+Escenario: La VM de Doble Propósito (Aplicación y Automatización)
+Máquina Virtual: compromised-vm (Nombre de host: vm-app-runner-01)
+Fecha: Lunes, 2 de Junio de 2025
+
+Introducción del Escenario
+En una compañia, la máquina virtual vm-app-runner-01 es una pieza crítica de la infraestructura. No solo aloja una aplicación interna vital, sino que también sirve como un nodo de ejecución para el equipo de automatización. Esta doble función ha llevado a una configuración de identidades compleja y, como descubriremos, peligrosa.
+
+Los Actores (Equipos Involucrados)
+Equipo de Desarrollo: Responsables de la "App Interna de Procesamiento". Son un equipo moderno que intenta seguir las mejores prácticas de seguridad de Azure.
+Equipo de Operaciones (Ops): Responsables de la infraestructura y la automatización. Usan Ansible como su herramienta estándar para la gestión de configuración y despliegues en todo el entorno, tanto en la nube como on-premise.
+1. El Rol de la Identidad Administrada (labidentity) - El Uso "Correcto"
+Propósito: Proporcionar una identidad segura a la "App Interna de Procesamiento" que se ejecuta en la VM.
+
+Función: La aplicación necesita acceder de forma segura a un Azure Key Vault para leer las cadenas de conexión de la base de datos y otras claves de API. El Equipo de Desarrollo, siguiendo las mejores prácticas, utilizó una Identidad Administrada para que la aplicación se autentique en Key Vault sin necesidad de almacenar secretos en archivos de configuración.
+
+La Falla Crítica (La Vulnerabilidad):
+Durante el despliegue inicial, un ingeniero del Equipo de Desarrollo necesitaba que la aplicación pudiera verificar el estado de otro recurso. Por una confusión y la prisa de una entrega, en lugar de asignar un rol de Reader específico, asignó el rol de User Access Administrator a nivel de suscripción, pensando erróneamente que era necesario para "leer la configuración de acceso". No entendió el alcance real del permiso y creó una bomba de tiempo.
+
+2. El Rol del Service Principal (attacker-sp) - El Punto de Entrada
+Propósito: Proporcionar una identidad a los scripts de automatización de Ansible que se ejecutan en la VM.
+
+Función: El Equipo de Ops utiliza vm-app-runner-01 como un "nodo de ejecución" de Ansible. Periódicamente, un cron job en la VM ejecuta playbooks de Ansible para realizar tareas de mantenimiento en otras VMs, como aplicar parches de seguridad o actualizar configuraciones de red (NSGs). Para que estos playbooks puedan autenticarse en Azure y gestionar otros recursos, necesitan una identidad.
+
+La Falla de Seguridad (El Acceso Inicial):
+El Equipo de Ops tiene un conjunto de playbooks estandarizados. Su método habitual es configurar sus nodos de ejecución con las credenciales de un Service Principal. En la VM, crearon un archivo de configuración en /etc/ansible/credentials.yml que contiene el appId, password y tenant del attacker-sp. Esto permite que los scripts se ejecuten de forma desatendida. Este archivo de credenciales es el eslabón débil que permite nuestro acceso inicial.
+
+La Cadena de Ataque Detallado:
+
+Compromiso Inicial: "Un atacante explota una vulnerabilidad en la 'App Interna de Procesamiento' (un SQL Injection o un File Upload) y obtiene acceso a la línea de comandos de la VM. Al explorar el sistema de archivos, encuentra el archivo /etc/ansible/credentials.yml y roba las credenciales del Service Principal (attacker-sp)."
+
+Establecer Punto de Apoyo: "El atacante vuelve a su máquina y usa az login --service-principal con las credenciales robadas. Ahora tiene una sesión autenticada en Azure. Descubre que tiene el rol Virtual Machine Contributor, que le permite, entre otras cosas, ejecutar comandos remotos en la misma VM de la que vino, pero ahora a través del plano de control de Azure."
+
+Descubrimiento Interno (El Pivote): "Usando az vm run-command invoke, el atacante empieza a explorar la VM de una forma más sigilosa. Su objetivo es ver si la VM tiene otros privilegios. Ejecuta az login --identity."
+
+El "Momento Eureka": "Al ejecutar az role assignment list después de iniciar sesión con la identidad, el atacante descubre el premio gordo. Ve que la VM tiene una segunda identidad, la Identidad Administrada (labidentity), y se da cuenta de que tiene asignado el rol User Access Administrator sobre toda la suscripción. El atacante ahora sabe que puede controlar todos los permisos en Azure."
+
+Escalada Final y Control Total: "El resto es historia. El atacante ejecuta el comando final az role assignment create desde la VM, usando el poder de la Identidad Administrada para promover su propio Service Principal (attacker-sp) al rol de Owner. El ataque ha sido un éxito."
