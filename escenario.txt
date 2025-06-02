@@ -1,7 +1,7 @@
 
 Escenario: La VM de Doble Propósito (Aplicación y Automatización)
 Máquina Virtual: compromised-vm (Nombre de host: vm-app-runner-01)
-Fecha: Lunes, 2 de Junio de 2025
+
 
 Introducción del Escenario
 En una compañia, la máquina virtual vm-app-runner-01 es una pieza crítica de la infraestructura. No solo aloja una aplicación interna vital, sino que también sirve como un nodo de ejecución para el equipo de automatización. Esta doble función ha llevado a una configuración de identidades compleja y, como descubriremos, peligrosa.
@@ -40,4 +40,4 @@ Escalada Final y Control Total: "El resto es historia. El atacante ejecuta el co
 
 find / -type f -iname "credentials*" 2>/dev/null -exec grep -iH "password" {} \;
 
-sudo apt-get update -y && sudo apt-get install ansible -y
+
