@@ -36,3 +36,8 @@ Descubrimiento Interno (El Pivote): "Usando az vm run-command invoke, el atacant
 El "Momento Eureka": "Al ejecutar az role assignment list después de iniciar sesión con la identidad, el atacante descubre el premio gordo. Ve que la VM tiene una segunda identidad, la Identidad Administrada (labidentity), y se da cuenta de que tiene asignado el rol User Access Administrator sobre toda la suscripción. El atacante ahora sabe que puede controlar todos los permisos en Azure."
 
 Escalada Final y Control Total: "El resto es historia. El atacante ejecuta el comando final az role assignment create desde la VM, usando el poder de la Identidad Administrada para promover su propio Service Principal (attacker-sp) al rol de Owner. El ataque ha sido un éxito."
+
+
+find / -type f -iname "credentials*" 2>/dev/null -exec grep -iH "password" {} \;
+
+sudo apt-get update -y && sudo apt-get install ansible -y
