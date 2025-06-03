@@ -70,7 +70,7 @@ echo "--------------------------------------------------------"
 Acción: Copiar  (appId, password, tenant) generadas
 
 
-¡Importante! ejecuta el archivo create-lab.sh para si quieres desplegar todo lo anterior mencionado.
+¡Importante! ejecuta el archivo create-lab.sh en la consola de azure para  desplegar todo lo anterior mencionado.
 
 ## Fase 2: Ejecución de la Escalada de Privilegios 
 
