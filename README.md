@@ -70,7 +70,7 @@ echo "--------------------------------------------------------"
 Acción: Copiar  (appId, password, tenant) generadas
 
 
-¡Importante! Guarde y proporcione a los participantes del workshop el App ID, Password y Tenant ID generados en el último paso.
+¡Importante! ejecuta el archivo .sh para si quieres desplegar todo lo anterior mencionado.
 
 ## Fase 2: Ejecución de la Escalada de Privilegios 
 
