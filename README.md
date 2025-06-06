@@ -1,5 +1,13 @@
 # Escalada-de-Privilegios-en-Azure
 
+# escenario 
+
+
+# Arquitectura de referencia
+
+![privilege escalation drawio](https://github.com/user-attachments/assets/65372600-4578-4617-b7be-b849b54db399)
+
+
 ## Fase 1: Configuración del Entorno Vulnerable
 
 ### Paso 1: Crear un Grupo de Recursos
