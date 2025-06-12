@@ -75,7 +75,7 @@ echo $sp_credentials
 
 echo "--------------------------------------------------------"
 
-Acción: Copiar  (appId, password, tenant) generadas
+
 
 
 ¡Importante! ejecuta el archivo create-lab.sh en la consola de azure para  desplegar todo lo anterior mencionado.
@@ -99,15 +99,11 @@ Dentro de la VM (simulado a través de run-command), el siguiente paso es descub
 
 Este script completo se ejecuta dentro de la VM para obtener el token y listar recursos
 
-   1. Instalar silenciosamente jq, una herramienta necesaria para parsear JSON
-      
-      sudo apt-get update > /dev/null 2>&1 && sudo apt-get install -y jq > /dev/null 2>&1
-
-  3. Obtener el token de acceso de la identidad, usando jq para extraerlo
+  1. Obtener el token de acceso de la identidad, usando jq para extraerlo
      
         token=$(curl -s "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/" -H Metadata:true | jq -r .access_token)
         
-      3. Usar el token para realizar una llamada a la API de Azure y listar recursos
+ 2. Usar el token para realizar una llamada a la API de Azure y listar recursos
          
        curl -s -X GET -H "Authorization: Bearer $token" "https://management.azure.com/subscriptions/$(az account show --query id -o tsv)/resourceGroups/lab-escalation-rg/resources?api-version=2021-04-01"
 
