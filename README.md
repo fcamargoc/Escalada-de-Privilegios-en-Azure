@@ -78,7 +78,7 @@ echo "--------------------------------------------------------"
 
 
 
-¡Importante! ejecuta el archivo create-lab.sh en la consola de azure para  desplegar todo lo anterior mencionado.
+¡Importante! ejecuta el archivo create-lab.sh en la consola de azure para  desplegar todo lo anterior mencionado y ademas las herramientas que se utilizaran en la maquina virtual vulnerable.
 
 ## Fase 2: Ejecución de la Escalada de Privilegios 
 
