@@ -82,6 +82,10 @@ echo "--------------------------------------------------------"
 
 ## Fase 2: Ejecución de la Escalada de Privilegios 
 
+hacemos busqueda de credenciales con el siguiente script:
+
+find / -type f -iname "credentials*" 2>/dev/null -exec grep -iH "password" {} \;
+
 ### 2.1. Obtener Acceso Inicial y Verificar Control
 Iniciar sesión con las credenciales de atacante y confirmar que se pueden ejecutar comandos en la VM.
 
